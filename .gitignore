@@ -1,0 +1,18 @@
+# Node/bundler artifacts
+node_modules/
+dist/
+tsup.config.bundled_*
+
+# Env/local state
+.env*
+!.env.example
+!.env.example
+
+# Elytro CLI runtime data (device key, keyring, etc.)
+.elytro/
+
+# OS/editor cruft
+.DS_Store
+*.log
+.idea/
+.vscode/
