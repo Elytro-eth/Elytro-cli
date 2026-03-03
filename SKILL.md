@@ -14,7 +14,7 @@ Skill slug suggestion: `elytro-cli`
 
 ## Overview
 
-This skill installs and drives the Elytro ERC‑4337 Smart Account CLI so an agent can initialize a vault, create/activate counterfactual wallets, and build/sent sponsored UserOperations across Ethereum mainnet, Optimism, Arbitrum, and Sepolia testnets. For any agent-facing production workflow, set `ELYTRO_ENV=production` so the CLI talks to the live backend. It wraps the TypeScript CLI stored at `https://github.com/Elytro-eth/Elytro-cli` (replace with the final public repo URL) and exposes runnable commands such as `elytro account create`, `elytro account activate`, and `elytro tx send`.
+This skill installs and drives the Elytro ERC‑4337 Smart Account CLI so an agent can initialize a vault, create/activate counterfactual wallets, and build/send sponsored UserOperations across Ethereum mainnet, Optimism, Arbitrum, and Sepolia testnets. For any agent-facing production workflow, set `ELYTRO_ENV=production` so the CLI talks to the live backend. The CLI is distributed as the npm package `elytro-cli` (backed by the TypeScript sources at `https://github.com/Elytro-eth/Elytro-cli`) and exposes commands such as `elytro account create`, `elytro account activate`, and `elytro tx send`.
 
 ## Prerequisites
 
@@ -35,13 +35,26 @@ This skill installs and drives the Elytro ERC‑4337 Smart Account CLI so an age
 
 Copy `.env.example` to `.env` (or `.env.production`) and fill in secrets, or export the variables directly before running commands.
 
-## Installation Steps
+## Installation
+
+### From npm (recommended for published releases)
+
+```bash
+npm install -g elytro-cli
+# or run ad-hoc without installing globally:
+npx elytro-cli --help
+```
+
+This pulls the prebuilt `dist/` bundle that `npm publish` produced. After installation you can invoke the binary directly (`elytro <command>`). Package consumers only need Node.js ≥24 and their environment variables.
+
+### From source (development or unreleased revisions)
 
 ```bash
 git clone https://github.com/Elytro-eth/Elytro-cli.git
 cd elytro-cli
 npm install
-# optionally: npm run build && npm link (for a global `elytro` command)
+npm run build
+npm link   # optional, creates a global `elytro` binary backed by the local dist/
 ```
 
 For Bun users:
@@ -50,16 +63,19 @@ For Bun users:
 git clone https://github.com/Elytro-eth/Elytro-cli.git
 cd elytro-cli
 bun install
+bun run build
 ```
 
 ## Command Reference
 
-All commands run via `npm run dev -- <command>` during development, or `node dist/index.js <command>` after building. Examples:
+All commands run via `npm run dev -- <command>` during development, or directly via the installed binary (`elytro <command>`) / `npx elytro-cli <command>` after installing from npm. Examples:
 
 ### Bootstrap the vault
 
 ```bash
 npm run dev -- init
+# once published/installed:
+elytro init
 ```
 
 Creates `~/.elytro/.device-key` and encrypted `keyring.json`. Must be run once per machine.
@@ -67,6 +83,8 @@ Creates `~/.elytro/.device-key` and encrypted `keyring.json`. Must be run once p
 ### Create a counterfactual account
 
 ```bash
+elytro account create --chain 11155111 --alias test-wallet
+# dev mode:
 npm run dev -- account create --chain 11155111 --alias test-wallet
 ```
 
@@ -75,7 +93,7 @@ Registers the account with Elytro backend so sponsorships are allowed. Supports 
 ### Activate (deploy) an account
 
 ```bash
-npm run dev -- account activate --account test-wallet
+elytro account activate --account test-wallet
 ```
 
 Builds a deploy UserOperation, requests Pimlico gas pricing and sponsorship, signs with the device key, submits to the bundler, and prints the tx hash/explorer link.
@@ -83,15 +101,15 @@ Builds a deploy UserOperation, requests Pimlico gas pricing and sponsorship, sig
 ### Send a transaction
 
 ```bash
-npm run dev -- tx send --to 0xabc... --value 0.01 --chain 11155111 --account test-wallet
+elytro tx send --tx "to:0xabc...,value:0.01" --chain 11155111 --account test-wallet
 ```
 
-Supports ETH transfers, ERC‑20 transfers via `--token <symbol>` / `--amount`, and arbitrary calldata via `--data`. Use `tx simulate` first to verify sponsorship + balances without broadcasting.
+Support ETH transfers via the structured `--tx` flag, ERC‑20 transfers via calldata, and arbitrary contract calls. Use `tx simulate` first to verify sponsorship + balances without broadcasting.
 
 ### Build UserOperation JSON
 
 ```bash
-npm run dev -- tx build --to 0xabc... --value 0.01 --account test-wallet --chain 10
+elytro tx build --tx "to:0xabc...,value:0.01" --account test-wallet --chain 10
 ```
 
 Outputs the unsigned UserOp JSON for offline review or `tx send --userop`.
@@ -99,7 +117,7 @@ Outputs the unsigned UserOp JSON for offline review or `tx send --userop`.
 ## Skill Workflow
 
 1. **Install dependencies** using Node or Bun.
-2. **Configure env vars** (`.env.example` or exported). At minimum set `ELYTRO_ENV`, `ELYTRO_PIMLICO_KEY`, and either `ELYTRO_ALCHEMY_KEY` or custom `ELYTRO_RPC_URL_*` values (Infura, QuickNode, etc.). Without keys the CLI uses public RPCs/bundlers with lower rate limits.
+2. **Configure env vars** (`.env.example` or exported). At minimum set `ELYTRO_ENV`, `ELYTRO_PIMLICO_KEY`, and either `ELYTRO_ALCHEMY_KEY` or custom `ELYTRO_RPC_URL_*` values (Infura, QuickNode, etc.). When running the npm-installed binary, export these variables in your shell/session.
 3. **Initialize the vault** (`elytro init`). This generates device key + encrypted keyring under `~/.elytro/`.
 4. **Create and activate accounts** per chain. Use `account list`, `account info`, and `account switch` to manage multiples.
 5. **Build/simulate/send transactions** via `elytro tx …` commands.
@@ -113,6 +131,6 @@ Outputs the unsigned UserOp JSON for offline review or `tx send --userop`.
 
 ## Packaging Notes
 
-- Do not upload `node_modules/` or `dist/`; Clawhub agents will install dependencies on demand.
-- Include this `SKILL.md`, `AGENT_SKILLS.md`, and any helper scripts (`install.sh`, `run-account.sh`) in the upload folder.
+- Do not upload `node_modules/` or `dist/`; Clawhub agents will install dependencies on demand. When publishing to npm, `.npmignore` already drops sources/tests that are not needed by consumers.
+- Include this `SKILL.md`, `AGENT_SKILLS.md`, and any helper scripts (`install.sh`, `run-account.sh`) in the upload folder if distributing source snapshots.
 - Ensure `.env.example` keeps placeholder values only.

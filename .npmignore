@@ -1,0 +1,20 @@
+# Environment files and secrets
+.env*
+!.env.example
+
+# Local dependencies and build artifacts
+node_modules/
+coverage/
+
+# Source and test files (only ship built output)
+src/
+test/
+
+# Tooling / config not needed at runtime
+tsconfig.json
+tsup.config.ts
+tsup.config.*.mjs
+
+# Developer docs
+AGENT_SKILLS.md
+SKILL.md
